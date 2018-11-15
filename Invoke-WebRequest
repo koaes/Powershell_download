@@ -1,0 +1,20 @@
+add-type @”
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+public class TrustAllCertsPolicy : ICertificatePolicy {
+public bool CheckValidationResult(
+ServicePoint srvPoint, X509Certificate certificate,
+WebRequest request, int certificateProblem) {
+return true;
+}
+}
+“@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$response = Invoke-WebRequest -Uri "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
+$table = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"}).outerHTML
+$arrayHTML = ($table.ParsedHtml.getElementsByTagName("P")).outerHTML
+write-host $arrayHTML
+#write-host $response.AllElements | Where {$_.div -eq "entry-content"}
+#nav-next
