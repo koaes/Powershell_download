@@ -1,3 +1,7 @@
+# Script to use Invoke-WebRequest to download a webpage and the ParsedHTML library to parse the tags
+# KOAES 17 November 2018
+# Parse questions for technical certifications
+
 add-type @”
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -12,9 +16,16 @@ return true;
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Array to hold the final parsed items
+@array = New-Object System.Collections.Generic.List[System.Object]
+
+# Invoke-WebRequest to get html
 $response = Invoke-WebRequest -Uri "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
-$table = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"}).outerHTML
-$arrayHTML = ($table.ParsedHtml.getElementsByTagName("P")).outerHTML
-write-host $arrayHTML
-#write-host $response.AllElements | Where {$_.div -eq "entry-content"}
-#nav-next
+
+# Parse the Div tag named "entry-content"; this contains the question and answers
+$parsedResponse = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"}).outerHTML
+
+# Parse for the P tags
+$parsedResponse.getElementsByTagName("P") | ForEach-Object {$array.Add($_.innerHTML.replace("<BR>", " "))}
+
+write-host $array[5]
