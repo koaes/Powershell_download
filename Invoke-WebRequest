@@ -17,15 +17,67 @@ return true;
 [System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Array to hold the final parsed items
-@array = New-Object System.Collections.Generic.List[System.Object]
 
+
+$url = "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
+
+for($i=0; $i -lt 10; $i++){
+$final = ""
+$array = New-Object System.Collections.Generic.List[System.Object]
 # Invoke-WebRequest to get html
-$response = Invoke-WebRequest -Uri "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
+write-host "==== Attempt " $i " for " $url
+$response = Invoke-WebRequest -Uri $url
 
 # Parse the Div tag named "entry-content"; this contains the question and answers
-$parsedResponse = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"}).outerHTML
+$parsedResponse = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"})
+$nextlink = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "nav-next"}).innerHTML
+$link = $nextlink.split('"')
+$url = $link[3]
+
 
 # Parse for the P tags
 $parsedResponse.getElementsByTagName("P") | ForEach-Object {$array.Add($_.innerHTML.replace("<BR>", " "))}
 
-write-host $array[5]
+$questionArray = New-Object System.Collections.Generic.List[System.Object]
+$imageArray = New-Object System.Collections.Generic.List[System.Object]
+$image = ""
+foreach ($val in $array){
+    
+    $amount = $val -match "FONT"
+    if($amount){
+        $val = $val.replace("<FONT color=#333333>","")
+        $val = $val.replace("</FONT>","")
+        $answer = $val
+    }
+    $testExplain = $val -match "Explanation"
+    if($testExplain){
+        $explaination = $val
+    }
+
+    $imageTest = $val -match "href"
+    if($imageTest){
+            $imageArray.Add($val)
+          
+    }
+    
+
+    $questionTest = $val -match '^[A-Z]\.'
+    if($questionTest){
+        $questionArray.Add($val)}
+}
+$questions = ""
+foreach ($question in $questionArray){
+
+    $questions = $questions + "<br>" + $question + "<br>"
+}
+
+$final = $array[0] + "<br>" + $imageArray[0] + "<br>" + $questions + "`t" + $answer + "<br><br>" + $explaination
+$final = $final.replace("<FONT color=#333333>","")
+$final = $final.replace("</FONT>","")
+
+Out-File -Filepath c:\temp\test.txt -InputObject $final -Append -Encoding UTF8
+
+#write-host $array[5]
+
+}
+
