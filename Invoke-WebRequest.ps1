@@ -19,10 +19,12 @@ return true;
 # Array to hold the final parsed items
 
 
-$url = "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
+$url = "https://www.briefmenow.org/ec-council/what-type-of-alert-is-the-ids-giving-2/"
+#$url = "https://www.briefmenow.org/cisco/which-of-the-following-is-the-only-device-that-requires-2/"
 
-for($i=0; $i -lt 10; $i++){
+for($i=0; $i -lt 500; $i++){
 $final = ""
+$explaination = ""
 $array = New-Object System.Collections.Generic.List[System.Object]
 # Invoke-WebRequest to get html
 write-host "==== Attempt " $i " for " $url
@@ -34,6 +36,9 @@ $nextlink = ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.classN
 $link = $nextlink.split('"')
 $url = $link[3]
 
+#Debug Line to display the HTML of the page
+#write-host ($response.ParsedHtml.getElementsByTagName("Div") | Where{ $_.className -eq "entry-content"}).innerHTML
+
 
 # Parse for the P tags
 $parsedResponse.getElementsByTagName("P") | ForEach-Object {$array.Add($_.innerHTML.replace("<BR>", " "))}
@@ -42,9 +47,16 @@ $questionArray = New-Object System.Collections.Generic.List[System.Object]
 $imageArray = New-Object System.Collections.Generic.List[System.Object]
 $image = ""
 foreach ($val in $array){
-    
+    #write-host $val 
+    #write-host " "
     $amount = $val -match "FONT"
     if($amount){
+        if($val -match "META content"){
+            $fix = ""
+            $fix = $val -split '<SPAN'
+            $val = $fix[0]
+        }
+
         $val = $val.replace("<FONT color=#333333>","")
         $val = $val.replace("</FONT>","")
         $answer = $val
@@ -60,24 +72,47 @@ foreach ($val in $array){
           
     }
     
-
     $questionTest = $val -match '^[A-Z]\.'
     if($questionTest){
         $questionArray.Add($val)}
+    
 }
 $questions = ""
 foreach ($question in $questionArray){
-
+    #write-host $question
+    #write-host " "
+    if($question -match "<META content="){
+            $fix = ""
+            $fix = $question -split '<SPAN'
+            $question = $fix[0]
+    }
     $questions = $questions + "<br>" + $question + "<br>"
+    
+
+   
 }
 
+if($url -match "cisco"){
 $final = $array[0] + "<br>" + $imageArray[0] + "<br>" + $questions + "`t" + $answer + "<br><br>" + $explaination
+}else{
+$final = $array[0] + "<br>" + $imageArray[0] + "<br>" + $questions + "`t" + $answer
+}
+
 $final = $final.replace("<FONT color=#333333>","")
 $final = $final.replace("</FONT>","")
+
+# Debugging for final string before writing to file
+#write-host $array
+
+#write-host $questions
+#write-host " "
+#write-host $answer
+#write-host " "
+#write-host $final
+
 
 Out-File -Filepath c:\temp\test.txt -InputObject $final -Append -Encoding UTF8
 
 #write-host $array[5]
 
 }
-
